@@ -20,6 +20,13 @@ public class DocLookout {
     private final FilesizeRetriever filesizeRetriever;
 
     /**
+     * Class used to detect if the Internet is
+     * available for checking files and
+     * notifying webhooks.
+     */
+    private final InternetChecker internetChecker;
+
+    /**
      * Runs the task that checks all given URLs,
      * determines if any files have been updated,
      * and notifies the webhook if any files have
@@ -38,6 +45,7 @@ public class DocLookout {
     public DocLookout() {
         this.config = ConfigurationMgr.getInstance().getConfiguration();
         this.filesizeRetriever = new FilesizeRetriever();
+        this.internetChecker = new InternetChecker();
         this.timer = new Timer();
         this.webhookNotifier = new WebhookNotifier();
     }
@@ -79,6 +87,21 @@ public class DocLookout {
         this.timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
+
+                // Check if we can access the Internet,
+                // do not proceed if there is any issue
+                // with the process
+                try {
+                    boolean internetAvailable = internetChecker.isInternetAvailable().get();
+                    if (!internetAvailable) {
+                        System.err.println("The Internet is not available, not proceeding!");
+                        return;
+                    }
+                } catch (Exception e) {
+                    System.err.println("Failed to check if the Internet is available, not proceeding!");
+                    e.printStackTrace();
+                    return;
+                }
 
                 System.out.println("Checking for document changes...");
 
